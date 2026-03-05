@@ -18,9 +18,11 @@ STEP_USER_DATA_SCHEMA = vol.Schema({vol.Required(CONF_HOST): str})
 async def read_inverter_serial(data: dict[str, Any]) -> str:
     """Validate user input by reading the inverter serial number."""
     client = Client(data[CONF_HOST], 8899)
-    async with asyncio.timeout(10):
-        await client.connect()
-        await client.detect_plant()
+    try:
+        async with asyncio.timeout(10):
+            await client.connect()
+            await client.detect_plant()
+    finally:
         await client.close()
 
     serial_no: str = client.plant.inverter.serial_number

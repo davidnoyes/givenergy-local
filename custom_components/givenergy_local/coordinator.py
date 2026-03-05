@@ -92,8 +92,14 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
     async def _async_update_data(self) -> Plant:
         """Fetch data from the inverter."""
         if not self.client.connected:
-            await self.client.connect()
-            await self.client.detect_plant()
+            try:
+                await self.client.connect()
+                await self.client.detect_plant()
+            except Exception as err:
+                await self.client.close()
+                raise UpdateFailed(
+                    "Failed to establish initial inverter connection"
+                ) from err
             self.require_full_refresh = False
             self.last_full_refresh = datetime.now(UTC)
             # Detection performs a full refresh - no need to trigger another one now
@@ -130,7 +136,7 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
                 _LOGGER.debug("Closing connection due to communication error: %s", err)
                 await self.client.close()
                 raise UpdateFailed() from err
-            except TimeoutError as err:
+            except TimeoutError:
                 _LOGGER.warning("Timeout error, restarting connection")
                 await self.client.close()
                 await asyncio.sleep(_REFRESH_DELAY_BETWEEN_ATTEMPTS)
@@ -180,7 +186,10 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
             return False
 
         for check in _INVERTER_QUALITY_CHECKS:
-            value = inverter_data.dict().get(check.attr_name)
+            value = inverter_data.model_dump().get(check.attr_name)
+            if value is None:
+                _LOGGER.warning("Data discarded: %s is missing", check.attr_name)
+                return False
             too_low = False
             too_high = False
 
@@ -206,6 +215,6 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
 
     async def execute(self, requests: list[TransparentRequest]) -> None:
         """Execute a set of requests and force an update to read any new values."""
-        self.client.execute(requests, _COMMAND_TIMEOUT, _COMMAND_RETRIES)
+        await self.client.execute(requests, _COMMAND_TIMEOUT, _COMMAND_RETRIES)
         self.require_full_refresh = True
         await self.async_request_refresh()

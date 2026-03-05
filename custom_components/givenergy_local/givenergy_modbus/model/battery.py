@@ -1,9 +1,7 @@
 from enum import IntEnum
+from typing import TYPE_CHECKING
 
-try:
-    from pydantic.v1 import BaseConfig, create_model
-except ImportError:
-    from pydantic import BaseConfig, create_model
+from pydantic import ConfigDict, create_model
 
 from custom_components.givenergy_local.givenergy_modbus.model.register import IR
 from custom_components.givenergy_local.givenergy_modbus.model.register import (
@@ -15,6 +13,11 @@ from custom_components.givenergy_local.givenergy_modbus.model.register import (
 from custom_components.givenergy_local.givenergy_modbus.model.register import (
     RegisterGetter,
 )
+
+if TYPE_CHECKING:
+    from custom_components.givenergy_local.givenergy_modbus.model.register_cache import (
+        RegisterCache,
+    )
 
 
 class UsbDevice(IntEnum):
@@ -73,9 +76,7 @@ class BatteryRegisterGetter(RegisterGetter):
         "cap_design2": Def(DT.uint32, DT.centi, IR(101), IR(102)),
         "t_max": Def(DT.deci, None, IR(103)),
         "t_min": Def(DT.deci, None, IR(104)),
-        "e_discharge_total": Def(DT.deci, None, IR(105)),
-        "e_charge_total": Def(DT.deci, None, IR(106)),
-        # IR(107-109) unused
+        # IR(105-109) unused
         "serial_number": Def(
             DT.string, None, IR(110), IR(111), IR(112), IR(113), IR(114)
         ),
@@ -84,20 +85,20 @@ class BatteryRegisterGetter(RegisterGetter):
     }
 
 
-class BatteryConfig(BaseConfig):
-    """Pydantic configuration for the Battery class."""
-
-    orm_mode = True
-    getter_dict = BatteryRegisterGetter
-
-
 _Battery = create_model(
-    "Battery", __config__=BatteryConfig, **BatteryRegisterGetter.to_fields()
+    "Battery",
+    __config__=ConfigDict(),
+    **BatteryRegisterGetter.to_fields(),
 )  # type: ignore[call-overload]
 
 
 class Battery(_Battery):  # type: ignore[misc,valid-type]
     """Add some utility methods to the base pydantic class."""
+
+    @classmethod
+    def from_registers(cls, register_cache: "RegisterCache") -> "Battery":
+        """Build Battery from register cache."""
+        return cls.model_validate(BatteryRegisterGetter(register_cache).to_dict())
 
     def is_valid(self) -> bool:
         """Try to detect if a battery exists based on its attributes."""

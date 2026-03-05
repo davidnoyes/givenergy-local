@@ -35,12 +35,12 @@ class Client:
     """Asynchronous client utilising long-lived connections to a network device."""
 
     framer: Framer
-    expected_responses: "Dict[int, Future[TransparentResponse]]" = {}
+    expected_responses: "Dict[int, Future[TransparentResponse]]"
     plant: Plant
     command_builder: CommandBuilder
     # refresh_count: int = 0
     # debug_frames: Dict[str, Queue]
-    connected = False
+    connected: bool
     reader: StreamReader
     writer: StreamWriter
     network_consumer_task: Task
@@ -53,6 +53,8 @@ class Client:
         self.port = port
         self.connect_timeout = connect_timeout
         self.framer = ClientFramer()
+        self.expected_responses = {}
+        self.connected = False
         self.plant = Plant()
         self.command_builder = CommandBuilder()
         self.tx_queue = Queue(maxsize=20)
@@ -154,7 +156,7 @@ class Client:
                 if future:
                     future.cancel()
 
-        if self.network_producer_task:
+        if hasattr(self, "network_producer_task") and self.network_producer_task:
             self.network_producer_task.cancel()
 
         if hasattr(self, "writer") and self.writer:
@@ -162,7 +164,7 @@ class Client:
             await self.writer.wait_closed()
             del self.writer
 
-        if self.network_producer_task:
+        if hasattr(self, "network_consumer_task") and self.network_consumer_task:
             self.network_consumer_task.cancel()
 
         if hasattr(self, "reader") and self.reader:

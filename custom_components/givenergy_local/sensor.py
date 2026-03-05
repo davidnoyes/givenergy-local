@@ -21,7 +21,7 @@ from homeassistant.const import (
     UnitOfFrequency,
     UnitOfPower,
     UnitOfTemperature,
-    UnitOfTime
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -333,24 +333,6 @@ _BASIC_BATTERY_SENSORS = [
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         ge_modbus_key="t_bms_mosfet",
     ),
-    MappedSensorEntityDescription(
-        key="battery_discharge_energy_total",
-        name="Battery Discharge Energy Total",
-        icon=Icon.BATTERY_MINUS,
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        device_class=SensorDeviceClass.ENERGY,
-        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        ge_modbus_key="e_discharge_total",
-    ),
-    MappedSensorEntityDescription(
-        key="battery_charge_energy_total",
-        name="Battery Charge Energy Total",
-        icon=Icon.BATTERY_PLUS,
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        device_class=SensorDeviceClass.ENERGY,
-        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        ge_modbus_key="e_charge_total",
-    ),
 ]
 
 _BATTERY_RESERVE_SENSOR_AH = MappedSensorEntityDescription(
@@ -376,7 +358,7 @@ _BATTERY_RUNTIME_SENSOR = MappedSensorEntityDescription(
     icon=Icon.BATTERY_PAUSE,
     device_class=SensorDeviceClass.DURATION,
     state_class=SensorStateClass.TOTAL,
-    native_unit_of_measurement=UnitOfTime.SECONDS
+    native_unit_of_measurement=UnitOfTime.SECONDS,
 )
 
 _BATTERY_CAPACITY_SENSORS = [
@@ -472,9 +454,15 @@ async def async_setup_entry(
 
         entities.extend(
             [
-                BatteryReserveSensorAh(coordinator, config_entry, _BATTERY_RESERVE_SENSOR_AH, batt_num),
-                BatteryReserveSensorkWh(coordinator, config_entry, _BATTERY_RESERVE_SENSOR_KWH, batt_num),
-                BatteryRuntimeSensor(coordinator, config_entry, _BATTERY_RUNTIME_SENSOR, batt_num),
+                BatteryReserveSensorAh(
+                    coordinator, config_entry, _BATTERY_RESERVE_SENSOR_AH, batt_num
+                ),
+                BatteryReserveSensorkWh(
+                    coordinator, config_entry, _BATTERY_RESERVE_SENSOR_KWH, batt_num
+                ),
+                BatteryRuntimeSensor(
+                    coordinator, config_entry, _BATTERY_RUNTIME_SENSOR, batt_num
+                ),
             ]
         )
 
@@ -518,7 +506,7 @@ class InverterBasicSensor(InverterEntity, SensorEntity):
     @property
     def native_value(self) -> StateType:
         """Return the register value as referenced by the 'key' property of the associated entity description."""
-        return self.data.dict().get(self.entity_description.key)  # type: ignore[no-any-return]
+        return self.data.model_dump().get(self.entity_description.key)  # type: ignore[no-any-return]
 
 
 class PVEnergyTodaySensor(InverterBasicSensor):
@@ -631,7 +619,7 @@ class BatteryBasicSensor(BatteryEntity, SensorEntity):
     @property
     def native_value(self) -> StateType:
         """Get the register value whose name matches the entity key."""
-        return self.data.dict().get(self.entity_description.ge_modbus_key)  # type: ignore[no-any-return]
+        return self.data.model_dump().get(self.entity_description.ge_modbus_key)  # type: ignore[no-any-return]
 
 
 class BatteryCapacitySensor(BatteryBasicSensor):
@@ -640,9 +628,10 @@ class BatteryCapacitySensor(BatteryBasicSensor):
     @property
     def native_value(self) -> StateType:
         """Map the low-level Ah value to energy in kWh."""
-        battery_capacity: float = (
-            self.data.dict().get(self.entity_description.ge_modbus_key) * self.data.v_cells_sum / 1000
-        )
+        raw_capacity = self.data.model_dump().get(self.entity_description.ge_modbus_key)
+        if raw_capacity is None:
+            return None
+        battery_capacity = float(raw_capacity) * float(self.data.v_cells_sum) / 1000
         # Raw value is in Ah (Amp Hour)
         # Convert to KWh using formula Ah * V / 1000
         return round(battery_capacity, 3)
@@ -655,7 +644,7 @@ class BatteryCellsVoltageSensor(BatteryBasicSensor):
     def extra_state_attributes(self) -> Mapping[str, Any] | None:
         """Expose individual cell voltages."""
         num_cells = self.data.num_cells
-        return self.data.dict(  # type: ignore[no-any-return]
+        return self.data.model_dump(  # type: ignore[no-any-return]
             include={f"v_cell_{i:02d}" for i in range(1, num_cells + 1)}
         )
 
@@ -665,7 +654,11 @@ class BatteryReserveSensorAh(BatteryBasicSensor):
 
     @property
     def native_value(self) -> StateType:
-        return round((self.coordinator.data.inverter.battery_soc_reserve / 100) * self.data.cap_calibrated, 2)
+        battery_soc_reserve = self.coordinator.data.inverter.battery_soc_reserve
+        cap_calibrated = self.data.cap_calibrated
+        if battery_soc_reserve is None or cap_calibrated is None:
+            return None
+        return round((float(battery_soc_reserve) / 100) * float(cap_calibrated), 2)
 
 
 class BatteryReserveSensorkWh(BatteryBasicSensor):
@@ -673,7 +666,18 @@ class BatteryReserveSensorkWh(BatteryBasicSensor):
 
     @property
     def native_value(self) -> StateType:
-        return round(((self.coordinator.data.inverter.battery_soc_reserve / 100) * self.data.cap_calibrated * self.data.v_cells_sum) / 1000, 3)
+        battery_soc_reserve = self.coordinator.data.inverter.battery_soc_reserve
+        cap_calibrated = self.data.cap_calibrated
+        v_cells_sum = self.data.v_cells_sum
+        if battery_soc_reserve is None or cap_calibrated is None or v_cells_sum is None:
+            return None
+        reserve_capacity_kwh = (
+            (float(battery_soc_reserve) / 100)
+            * float(cap_calibrated)
+            * float(v_cells_sum)
+            / 1000
+        )
+        return round(reserve_capacity_kwh, 3)
 
 
 class BatteryRuntimeSensor(BatteryBasicSensor):
@@ -681,29 +685,32 @@ class BatteryRuntimeSensor(BatteryBasicSensor):
 
     @property
     def native_value(self) -> StateType:
-        cap_total_wh: float = (
-            self.data.cap_calibrated * self.data.v_cells_sum
-        )
+        cap_calibrated = self.data.cap_calibrated
+        cap_remaining = self.data.cap_remaining
+        v_cells_sum = self.data.v_cells_sum
+        battery_soc_reserve = self.coordinator.data.inverter.battery_soc_reserve
+        rate = self.coordinator.data.inverter.p_battery
+        if (
+            cap_calibrated is None
+            or cap_remaining is None
+            or v_cells_sum is None
+            or battery_soc_reserve is None
+            or rate is None
+        ):
+            return None
 
-        cap_remaining_wh: float = (
-            self.data.cap_remaining * self.data.v_cells_sum
-        )
+        cap_total_wh = float(cap_calibrated) * float(v_cells_sum)
+        cap_remaining_wh = float(cap_remaining) * float(v_cells_sum)
+        cap_reserve_wh = (float(battery_soc_reserve) / 100) * cap_total_wh
+        rate_watts = float(rate)
 
-        cap_reserve_wh: float = (
-            (self.coordinator.data.inverter.battery_soc_reserve / 100) * cap_total_wh
-        )
-
-        rate: float = (
-            self.coordinator.data.inverter.p_battery
-        )
-
-        if (cap_remaining_wh < cap_total_wh and rate < 0):
+        if cap_remaining_wh < cap_total_wh and rate_watts < 0:
             # charging
-            return round((cap_total_wh - cap_remaining_wh) / abs(rate) * 3600)
+            return round((cap_total_wh - cap_remaining_wh) / abs(rate_watts) * 3600)
 
-        if (cap_remaining_wh > cap_reserve_wh and rate > 0):
+        if cap_remaining_wh > cap_reserve_wh and rate_watts > 0:
             # discharging
-            return round((cap_remaining_wh - cap_reserve_wh) / rate * 3600)
+            return round((cap_remaining_wh - cap_reserve_wh) / rate_watts * 3600)
 
         # idle
         return 0
