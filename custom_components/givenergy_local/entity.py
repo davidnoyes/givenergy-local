@@ -114,6 +114,16 @@ class BatteryEntity(CoordinatorEntity[GivEnergyUpdateCoordinator]):
         super().__init__(coordinator)
         self.config_entry = config_entry
         self.battery_id = battery_id
+        self._last_known_data: Battery | None = self._current_battery_data()
+
+    def _current_battery_data(self) -> Battery | None:
+        """Get current battery data if it still exists."""
+        batteries = self.coordinator.data.batteries
+        if self.battery_id < len(batteries):
+            battery = batteries[self.battery_id]
+            self._last_known_data = battery
+            return battery
+        return None
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -133,13 +143,19 @@ class BatteryEntity(CoordinatorEntity[GivEnergyUpdateCoordinator]):
     @property
     def data(self) -> Battery:
         """Get battery data for the entity."""
-        # TODO watch for disappearing batteries
-        return self.coordinator.data.batteries[self.battery_id]
+        if battery := self._current_battery_data():
+            return battery
+        if self._last_known_data is not None:
+            return self._last_known_data
+        raise RuntimeError(f"Battery index {self.battery_id} is unavailable")
 
     @property
     def available(self) -> bool:
         """Return True if the inverter is online."""
-        return self.coordinator.last_update_success
+        return (
+            self.coordinator.last_update_success
+            and self._current_battery_data() is not None
+        )
 
     @property
     def battery_model(self) -> str:

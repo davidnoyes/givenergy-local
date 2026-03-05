@@ -68,8 +68,8 @@ def mock_plant_fixture():
         inverter.battery_charge_limit = 50
         inverter.battery_discharge_limit = 50
 
-        inverter.dict = MagicMock()
-        inverter.dict.return_value = inverter.__dict__
+        inverter.model_dump = MagicMock()
+        inverter.model_dump.return_value = inverter.__dict__
 
         battery1 = MagicMock()
         battery1.battery_serial_number = "BAT01"

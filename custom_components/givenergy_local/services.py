@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.const import ATTR_DEVICE_ID
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 import voluptuous as vol
 
@@ -101,29 +102,46 @@ def async_unload_services(hass: HomeAssistant) -> None:
         hass.services.async_remove(DOMAIN, service)
 
 
-async def _async_get_config_entries(hass: HomeAssistant, device_id: str) -> set[str]:
-    """Get config entries for a device."""
+def _resolve_coordinator(
+    hass: HomeAssistant, device_id: str
+) -> GivEnergyUpdateCoordinator:
+    """Resolve a single loaded coordinator for a device ID."""
     device_registry = dr.async_get(hass)
-    inverter_device_entry = device_registry.async_get(device_id)
+    device_entry = device_registry.async_get(device_id)
 
-    entries: set[str] = set()
-    if inverter_device_entry:
-        entries = inverter_device_entry.config_entries.copy()
+    if device_entry is None:
+        raise HomeAssistantError(
+            f"Device '{device_id}' was not found in the device registry"
+        )
 
-    return entries
+    configured_entries = sorted(device_entry.config_entries)
+    if not configured_entries:
+        raise HomeAssistantError(
+            f"Device '{device_id}' is not linked to a GivEnergy config entry"
+        )
+
+    domain_data: dict[str, GivEnergyUpdateCoordinator] = hass.data.get(DOMAIN, {})
+    loaded_entries = [
+        entry_id for entry_id in configured_entries if entry_id in domain_data
+    ]
+    if not loaded_entries:
+        raise HomeAssistantError(
+            f"No loaded GivEnergy config entry found for device '{device_id}'"
+        )
+
+    if len(loaded_entries) > 1:
+        raise HomeAssistantError(
+            f"Device '{device_id}' is linked to multiple GivEnergy config entries: "
+            + ", ".join(loaded_entries)
+        )
+
+    return domain_data[loaded_entries[0]]
 
 
 async def _async_service_call(
     hass: HomeAssistant, device_id: str, commands: list[TransparentRequest]
 ) -> None:
-    # Just take the first matching config entry
-    # We really shouldn't have multiple entries for the same device ID
-    entries = await _async_get_config_entries(hass, device_id)
-    if not entries:
-        return
-
-    config_entry = entries.pop()
-    coordinator: GivEnergyUpdateCoordinator = hass.data[DOMAIN][config_entry]
+    coordinator = _resolve_coordinator(hass, device_id)
     await coordinator.execute(commands)
 
 

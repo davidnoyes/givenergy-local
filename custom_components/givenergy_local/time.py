@@ -118,4 +118,4 @@ class InverterTimeslotSensor(InverterEntity, TimeEntity):
 
     async def async_set_value(self, value: time) -> None:
         """Update the current value."""
-        self.entity_description.set_fn(self.coordinator, value)
+        await self.entity_description.set_fn(self.coordinator, value)

@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
 from custom_components.givenergy_local.givenergy_modbus.model import GivEnergyBaseModel
 from custom_components.givenergy_local.givenergy_modbus.model.battery import Battery
@@ -25,8 +25,8 @@ _logger = logging.getLogger(__name__)
 class Plant(GivEnergyBaseModel):
     """Representation of a complete GivEnergy plant."""
 
-    register_caches: dict[int, RegisterCache] = {}
-    additional_holding_registers: list[int] = []
+    register_caches: dict[int, RegisterCache] = Field(default_factory=dict)
+    additional_holding_registers: list[int] = Field(default_factory=list)
     inverter_serial_number: str = ""
     data_adapter_serial_number: str = ""
     number_batteries: int = 0
