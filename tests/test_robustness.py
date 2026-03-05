@@ -18,7 +18,9 @@ from custom_components.givenergy_local.coordinator import (
 )
 from custom_components.givenergy_local.givenergy_modbus.client.client import Client
 from custom_components.givenergy_local.givenergy_modbus.model.plant import Plant
-from custom_components.givenergy_local.givenergy_modbus.model.register_cache import RegisterCache
+from custom_components.givenergy_local.givenergy_modbus.model.register_cache import (
+    RegisterCache,
+)
 from custom_components.givenergy_local.services import (
     _async_service_call,
     _resolve_coordinator,
@@ -55,7 +57,9 @@ async def test_coordinator_execute_awaits_client_execute():
     assert coordinator.require_full_refresh is True
 
 
-async def test_read_inverter_serial_closes_client_on_error(monkeypatch: pytest.MonkeyPatch):
+async def test_read_inverter_serial_closes_client_on_error(
+    monkeypatch: pytest.MonkeyPatch,
+):
     """Ensure validation path always closes the client even when detect fails."""
     created = []
 
@@ -66,7 +70,9 @@ async def test_read_inverter_serial_closes_client_on_error(monkeypatch: pytest.M
             self.host = host
             self.port = port
             self.closed = False
-            self.plant = SimpleNamespace(inverter=SimpleNamespace(serial_number="SN123"))
+            self.plant = SimpleNamespace(
+                inverter=SimpleNamespace(serial_number="SN123")
+            )
             created.append(self)
 
         async def connect(self):
@@ -131,14 +137,19 @@ def test_resolve_coordinator_rejects_ambiguous_device_mapping():
     """Ensure service calls fail fast when a device maps to multiple entries."""
     coordinator_a = object()
     coordinator_b = object()
-    hass = SimpleNamespace(data={DOMAIN: {"entry_a": coordinator_a, "entry_b": coordinator_b}})
+    hass = SimpleNamespace(
+        data={DOMAIN: {"entry_a": coordinator_a, "entry_b": coordinator_b}}
+    )
     device_entry = SimpleNamespace(config_entries={"entry_a", "entry_b"})
     registry = SimpleNamespace(async_get=lambda _: device_entry)
 
-    with patch(
-        "custom_components.givenergy_local.services.dr.async_get",
-        return_value=registry,
-    ), pytest.raises(HomeAssistantError, match="multiple"):
+    with (
+        patch(
+            "custom_components.givenergy_local.services.dr.async_get",
+            return_value=registry,
+        ),
+        pytest.raises(HomeAssistantError, match="multiple"),
+    ):
         _resolve_coordinator(hass, "device_1")
 
 
