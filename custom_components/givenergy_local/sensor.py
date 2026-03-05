@@ -333,24 +333,6 @@ _BASIC_BATTERY_SENSORS = [
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         ge_modbus_key="t_bms_mosfet",
     ),
-    MappedSensorEntityDescription(
-        key="battery_discharge_energy_total",
-        name="Battery Discharge Energy Total",
-        icon=Icon.BATTERY_MINUS,
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        device_class=SensorDeviceClass.ENERGY,
-        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        ge_modbus_key="e_discharge_total",
-    ),
-    MappedSensorEntityDescription(
-        key="battery_charge_energy_total",
-        name="Battery Charge Energy Total",
-        icon=Icon.BATTERY_PLUS,
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        device_class=SensorDeviceClass.ENERGY,
-        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        ge_modbus_key="e_charge_total",
-    ),
 ]
 
 _BATTERY_RESERVE_SENSOR_AH = MappedSensorEntityDescription(
