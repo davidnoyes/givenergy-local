@@ -1,0 +1,43 @@
+---
+name: Dependabot auto-merge
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable-automerge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for safe updates
+        if: |
+          steps.metadata.outputs.package-ecosystem == 'pip' ||
+          steps.metadata.outputs.package-ecosystem == 'github-actions'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+        run: |
+          case "$UPDATE_TYPE" in
+            version-update:semver-minor|version-update:semver-patch|security:*)
+              gh pr merge --auto --squash "$PR_URL"
+              ;;
+            *)
+              echo "Skipping auto-merge for update type: $UPDATE_TYPE"
+              ;;
+          esac
