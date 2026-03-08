@@ -216,6 +216,7 @@ class RegisterGetter:
                 ret := func.__annotations__.get("return", None)
             ):
                 return ret
+            # Only return obj if it's a type (e.g. IntEnum), not a callable
             if isinstance(obj, type):
                 return obj
             return Any
