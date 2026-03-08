@@ -1,7 +1,7 @@
 ---
 name: Home Assistant compatibility
 
-on:
+"on":
   pull_request:
   push:
     branches: [master]
@@ -39,7 +39,9 @@ jobs:
 
       - name: Upgrade Home Assistant to prerelease
         if: matrix.channel.experimental
-        run: python -m pip install --upgrade --pre homeassistant pytest-homeassistant-custom-component
+        run: >
+          python -m pip install --upgrade --pre
+          homeassistant pytest-homeassistant-custom-component
 
       - name: Run tests
         run: |
@@ -54,4 +56,4 @@ jobs:
             tests
 
       - name: Run Hassfest validation
-        uses: home-assistant/actions/hassfest@1.0.0
+        uses: home-assistant/actions/hassfest@master

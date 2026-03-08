@@ -1,17 +1,9 @@
 ---
 name: Release Drafter
 
-on:
+"on":
   push:
     branches: [master]
-  pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - edited
-      - labeled
-      - unlabeled
   workflow_dispatch:
 
 permissions:

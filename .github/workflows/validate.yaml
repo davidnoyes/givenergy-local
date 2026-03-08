@@ -1,7 +1,7 @@
 ---
 name: HACS/Hassfest validation
 
-on:
+"on":
   pull_request:
   push:
     branches: [master]
@@ -22,4 +22,4 @@ jobs:
           ignore: brands,repository,topics
 
       - name: Hassfest validation
-        uses: home-assistant/actions/hassfest@1.0.0
+        uses: home-assistant/actions/hassfest@master
