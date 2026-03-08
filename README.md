@@ -4,6 +4,11 @@
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
 [![hacs][hacsbadge]][hacs]
+[![Unit Tests][test-shield]][test-workflow]
+[![Validation][validate-shield]][validate-workflow]
+[![Pre-commit][pre-commit-shield]][pre-commit-workflow]
+[![HA Compatibility][ha-compat-shield]][ha-compat-workflow]
+[![Release Please][release-please-shield]][release-please-workflow]
 
 This custom component provides local access to GivEnergy inverters via Modbus. This provides more frequent and reliable updates compared to using the GivEnergy Cloud API.
 
@@ -61,6 +66,16 @@ If you want to contribute to this please read the [Contribution Guidelines](CONT
 [license-shield]: https://img.shields.io/github/license/cdpuk/givenergy-local.svg?style=for-the-badge
 [releases-shield]: https://img.shields.io/github/release/cdpuk/givenergy-local.svg?style=for-the-badge
 [releases]: https://github.com/cdpuk/givenergy-local/releases
+[test-shield]: https://img.shields.io/github/actions/workflow/status/cdpuk/givenergy-local/test.yaml?branch=master&style=for-the-badge&label=tests
+[test-workflow]: https://github.com/cdpuk/givenergy-local/actions/workflows/test.yaml
+[validate-shield]: https://img.shields.io/github/actions/workflow/status/cdpuk/givenergy-local/validate.yaml?branch=master&style=for-the-badge&label=validation
+[validate-workflow]: https://github.com/cdpuk/givenergy-local/actions/workflows/validate.yaml
+[pre-commit-shield]: https://img.shields.io/github/actions/workflow/status/cdpuk/givenergy-local/pre-commit.yaml?branch=master&style=for-the-badge&label=pre-commit
+[pre-commit-workflow]: https://github.com/cdpuk/givenergy-local/actions/workflows/pre-commit.yaml
+[ha-compat-shield]: https://img.shields.io/github/actions/workflow/status/cdpuk/givenergy-local/homeassistant-compatibility.yaml?branch=master&style=for-the-badge&label=ha%20compat
+[ha-compat-workflow]: https://github.com/cdpuk/givenergy-local/actions/workflows/homeassistant-compatibility.yaml
+[release-please-shield]: https://img.shields.io/github/actions/workflow/status/cdpuk/givenergy-local/release-please.yaml?branch=master&style=for-the-badge&label=release
+[release-please-workflow]: https://github.com/cdpuk/givenergy-local/actions/workflows/release-please.yaml
 [givenergy-modbus]: https://github.com/dewet22/givenergy-modbus
 [givtcp]: https://github.com/britkat1980/giv_tcp
 [hacs-download]: https://hacs.xyz/docs/setup/download

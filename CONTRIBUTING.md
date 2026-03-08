@@ -19,6 +19,18 @@ Pull requests are the best way to propose changes to the codebase.
 4. Test you contribution, and ensure any relevant tests have been updated.
 5. Open a pull request.
 
+## Commit and PR titles
+
+Releases are automated with `release-please`, which uses Conventional Commits to decide whether the next release is a patch, minor, or major version.
+
+Prefer commit messages or squash-merge pull request titles like:
+
+- `fix: handle inverter reconnects cleanly`
+- `feat: add support for new inverter model`
+- `feat!: remove deprecated service call`
+
+If you use squash merges, make sure the final pull request title follows that format.
+
 ## Any contributions you make will be under the MIT Software License
 
 In short, when you submit code changes, your submissions are understood to be under the same [MIT License](http://choosealicense.com/licenses/mit/) that covers the project. Feel free to contact the maintainer if that's a concern.
