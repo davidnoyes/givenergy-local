@@ -110,6 +110,7 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
             update_interval=timedelta(seconds=10),
         )
 
+        self.entry_id = config_entry.entry_id
         self.host = str(config_entry.data.get(CONF_HOST))
         self.client = Client(self.host, 8899)
         self.require_full_refresh = True
@@ -333,7 +334,9 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
         """Expose the age of the last trusted snapshot."""
         if self.recovery.last_trusted_update is None:
             return None
-        return int((datetime.now(UTC) - self.recovery.last_trusted_update).total_seconds())
+        return int(
+            (datetime.now(UTC) - self.recovery.last_trusted_update).total_seconds()
+        )
 
     @property
     def trusted_snapshot_available(self) -> bool:
@@ -351,7 +354,11 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
     @property
     def _recovery_notification_id(self) -> str:
         """Return the per-entry persistent notification ID."""
-        return f"{_RECOVERY_NOTIFICATION_ID_PREFIX}_{self.config_entry.entry_id}"
+        entry_id = getattr(self, "entry_id", None)
+        if entry_id is None:
+            config_entry = getattr(self, "config_entry", None)
+            entry_id = config_entry.entry_id if config_entry is not None else "unknown"
+        return f"{_RECOVERY_NOTIFICATION_ID_PREFIX}_{entry_id}"
 
     @property
     def recovery_status_summary(self) -> str:
@@ -387,7 +394,9 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
     @property
     def recovery_status_detail(self) -> str:
         """Provide a fuller troubleshooting message for notifications and diagnostics."""
-        last_failure = self.last_failure_category.value if self.last_failure_category else "none"
+        last_failure = (
+            self.last_failure_category.value if self.last_failure_category else "none"
+        )
         return (
             f"{self.recovery_status_summary}\n\n"
             f"Last failure category: {last_failure}\n"

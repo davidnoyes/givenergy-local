@@ -52,7 +52,9 @@ def _map_validation_error(err: Exception) -> ConfigFlowError:
     if isinstance(err, (ValueError, socket.gaierror)):
         return ConfigFlowError.INVALID_HOST
 
-    if isinstance(err, (CommunicationError, TimeoutError, OSError, asyncio.TimeoutError)):
+    if isinstance(
+        err, (CommunicationError, TimeoutError, OSError, asyncio.TimeoutError)
+    ):
         return ConfigFlowError.CANNOT_CONNECT
 
     if isinstance(err, (AttributeError, InvalidInverterError)):
@@ -101,7 +103,7 @@ class GivEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
                 step_id="user", data_schema=STEP_USER_DATA_SCHEMA
             )
 
-        errors = {}
+        errors: dict[str, str] = {}
 
         try:
             validated_input, serial_no = await _validate_input(user_input)
@@ -138,7 +140,7 @@ class GivEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
                 ),
             )
 
-        errors = {}
+        errors: dict[str, str] = {}
 
         try:
             validated_input, serial_no = await _validate_input(user_input)
@@ -154,8 +156,7 @@ class GivEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
                     reason=ConfigFlowError.DIFFERENT_INVERTER
                 )
             elif (
-                existing_entry is not None
-                and existing_entry.entry_id != entry.entry_id
+                existing_entry is not None and existing_entry.entry_id != entry.entry_id
             ):
                 return self.async_abort(reason=ConfigFlowError.ALREADY_CONFIGURED)
 
