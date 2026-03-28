@@ -65,6 +65,21 @@ Then configure `pre-commit` checks:
 pre-commit install
 ```
 
+### Compatibility seam
+
+Home Assistant and Python compatibility work should land in the smallest obvious place:
+
+- `custom_components/givenergy_local/compat.py` for Home Assistant version shims
+- `custom_components/givenergy_local/runtime.py` for typed config-entry runtime ownership
+
+If a compatibility fix needs to touch setup, unload, services, and platforms all at once, stop and check whether the change really belongs in one of those two files first.
+
+For a quick compatibility/lifecycle smoke test during development, run:
+
+```
+.venv/bin/pytest tests/test_init.py tests/test_robustness.py -q
+```
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under its MIT License.

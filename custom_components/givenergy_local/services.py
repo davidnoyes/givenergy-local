@@ -14,10 +14,12 @@ from custom_components.givenergy_local.givenergy_modbus.pdu.transparent import (
     TransparentRequest,
 )
 
+from .compat import has_entry_runtime_data
 from .const import DOMAIN, LOGGER
 from .coordinator import GivEnergyUpdateCoordinator
 from .givenergy_modbus.client.commands import CommandBuilder
 from .givenergy_modbus.model import TimeSlot
+from .runtime import get_coordinator
 
 _ATTR_START_TIME = "start_time"
 _ATTR_END_TIME = "end_time"
@@ -120,10 +122,14 @@ def _resolve_coordinator(
             f"Device '{device_id}' is not linked to a GivEnergy config entry"
         )
 
-    domain_data: dict[str, GivEnergyUpdateCoordinator] = hass.data.get(DOMAIN, {})
-    loaded_entries = [
-        entry_id for entry_id in configured_entries if entry_id in domain_data
-    ]
+    loaded_entries = []
+    for entry_id in configured_entries:
+        config_entry = hass.config_entries.async_get_entry(entry_id)
+        if config_entry is None:
+            continue
+        if not has_entry_runtime_data(config_entry):
+            continue
+        loaded_entries.append(entry_id)
     if not loaded_entries:
         raise HomeAssistantError(
             f"No loaded GivEnergy config entry found for device '{device_id}'"
@@ -135,7 +141,12 @@ def _resolve_coordinator(
             + ", ".join(loaded_entries)
         )
 
-    return domain_data[loaded_entries[0]]
+    config_entry = hass.config_entries.async_get_entry(loaded_entries[0])
+    if config_entry is None:
+        raise HomeAssistantError(
+            f"GivEnergy config entry '{loaded_entries[0]}' is no longer available"
+        )
+    return get_coordinator(config_entry)
 
 
 async def _async_service_call(

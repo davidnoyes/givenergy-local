@@ -12,9 +12,10 @@ from custom_components.givenergy_local.givenergy_modbus.client.commands import (
 )
 
 from . import GivEnergyUpdateCoordinator
-from .const import DOMAIN, Icon
+from .const import Icon
 from .entity import InverterEntity
 from .givenergy_modbus.model.inverter import BatteryPauseMode
+from .runtime import get_coordinator
 
 _BATTERY_PAUSE_MODE_OPTIONS = {
     BatteryPauseMode.DISABLED: "Not Paused",
@@ -38,7 +39,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up select entities."""
-    coordinator: GivEnergyUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: GivEnergyUpdateCoordinator = get_coordinator(config_entry)
     entities: list[SelectEntity] = []
 
     if coordinator.data.inverter.battery_pause_mode is not None:

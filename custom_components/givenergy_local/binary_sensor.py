@@ -16,10 +16,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_point_in_time
 from homeassistant.util import dt
 
-from .const import DOMAIN, LOGGER, Icon
+from .const import LOGGER, Icon
 from .coordinator import GivEnergyUpdateCoordinator
 from .entity import InverterEntity
 from .givenergy_modbus.model import TimeSlot
+from .runtime import get_coordinator
 
 _CHARGE_SLOT_BINARY_SENSORS = [
     BinarySensorEntityDescription(
@@ -51,7 +52,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Add sensors for passed config_entry in HA."""
-    coordinator: GivEnergyUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: GivEnergyUpdateCoordinator = get_coordinator(config_entry)
 
     # Add inverter sensors for charge/discharge slots.
     async_add_entities(

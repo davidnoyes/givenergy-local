@@ -10,10 +10,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, Icon
+from .const import Icon
 from .coordinator import GivEnergyUpdateCoordinator
 from .entity import InverterEntity
 from .givenergy_modbus.client.commands import CommandBuilder
+from .runtime import get_coordinator
 
 
 @dataclass(frozen=True)
@@ -66,7 +67,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Add switches for passed config_entry in HA."""
-    coordinator: GivEnergyUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: GivEnergyUpdateCoordinator = get_coordinator(config_entry)
     entities = [
         InverterSwitch(coordinator, config_entry, entity_description)
         for entity_description in _GENERIC_ENTITIES

@@ -103,6 +103,9 @@ class BatteryEntity(CoordinatorEntity[GivEnergyUpdateCoordinator]):
     """An entity associated with a battery device connected to the inverter."""
 
     battery_id: int
+    _battery_serial_number: str | None
+    _battery_bms_firmware_version: str | None
+    _battery_capacity_ah: int | None
 
     def __init__(
         self,
@@ -114,15 +117,22 @@ class BatteryEntity(CoordinatorEntity[GivEnergyUpdateCoordinator]):
         super().__init__(coordinator)
         self.config_entry = config_entry
         self.battery_id = battery_id
-        self._last_known_data: Battery | None = self._current_battery_data()
+        battery = self._current_battery_data()
+        self._battery_serial_number = (
+            battery.serial_number if battery is not None else None
+        )
+        self._battery_bms_firmware_version = (
+            str(battery.bms_firmware_version) if battery is not None else None
+        )
+        self._battery_capacity_ah = (
+            int(battery.cap_design2) if battery is not None else None
+        )
 
     def _current_battery_data(self) -> Battery | None:
         """Get current battery data if it still exists."""
         batteries = self.coordinator.data.batteries
         if self.battery_id < len(batteries):
-            battery = batteries[self.battery_id]
-            self._last_known_data = battery
-            return battery
+            return batteries[self.battery_id]
         return None
 
     @property
@@ -130,12 +140,12 @@ class BatteryEntity(CoordinatorEntity[GivEnergyUpdateCoordinator]):
         """Battery device information for the entity."""
 
         return DeviceInfo(
-            identifiers={(DOMAIN, self.data.serial_number)},
+            identifiers={(DOMAIN, self._battery_serial_number or f"battery_{self.battery_id}")},
             name="Battery",
             manufacturer=MANUFACTURER,
             model=self.battery_model,
-            sw_version=str(self.data.bms_firmware_version),
-            serial_number=self.data.serial_number,
+            sw_version=self._battery_bms_firmware_version,
+            serial_number=self._battery_serial_number,
             configuration_url="https://givenergy.cloud",
             via_device=(DOMAIN, self.coordinator.data.inverter.serial_number),
         )
@@ -145,8 +155,6 @@ class BatteryEntity(CoordinatorEntity[GivEnergyUpdateCoordinator]):
         """Get battery data for the entity."""
         if battery := self._current_battery_data():
             return battery
-        if self._last_known_data is not None:
-            return self._last_known_data
         raise RuntimeError(f"Battery index {self.battery_id} is unavailable")
 
     @property
@@ -165,7 +173,10 @@ class BatteryEntity(CoordinatorEntity[GivEnergyUpdateCoordinator]):
         Unrecognised values are described with a capacity in Ah to allow these to be easily added
         in a future release.
         """
-        capacity = int(self.data.cap_design2)
+        battery = self._current_battery_data()
+        capacity = int(battery.cap_design2) if battery is not None else self._battery_capacity_ah
+        if capacity is None:
+            return "Unknown"
         model_name = _BATTERY_CAPACITY_TO_MODEL.get(capacity)
 
         if model_name is None:
