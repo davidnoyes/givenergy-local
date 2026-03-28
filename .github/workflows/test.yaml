@@ -9,6 +9,35 @@ name: Unit tests
     - cron: "0 0 * * *"
 
 jobs:
+  compat:
+    runs-on: "ubuntu-latest"
+    name: Compatibility smoke (Python ${{ matrix.python-version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13", "3.14"]
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install requirements
+        run: python3 -m pip install -r requirements.txt -r requirements_test.txt
+
+      - name: Run compatibility/lifecycle smoke tests
+        run: |
+          pytest \
+            -qq \
+            --timeout=9 \
+            -o console_output_style=count \
+            -p no:sugar \
+            tests/test_init.py \
+            tests/test_robustness.py
+
   test:
     runs-on: "ubuntu-latest"
     strategy:

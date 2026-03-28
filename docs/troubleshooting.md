@@ -33,6 +33,26 @@ Logs may sometimes indicate CRC errors in data received from the inverter. This 
 
 The volume of these errors typically increases when the inverter is being queried from multiple locations at the same time, e.g. by running both this integration and GivTCP.
 
+## Recovery mode
+
+Transient inverter or network glitches now put the integration into a short-lived recovery mode before it gives up completely.
+
+- During recovery, the integration keeps retrying silently and will only reuse a recent trusted snapshot for a limited set of safe values.
+- If recovery succeeds, the integration returns to a healthy state automatically.
+- If recovery does not succeed within the retry window, entities become `unavailable`.
+- If recovery fails completely, Home Assistant also shows one persistent notification with the configured host and the next recommended action.
+
+This is intentional. Missing data is safer than publishing bad energy values into dashboards or automations.
+
+For safety, inverter write commands are only allowed while the integration is healthy. If a service call is rejected because the coordinator is recovering or unavailable, wait for the integration to recover first and then retry the command.
+
+The `Recovery State` diagnostic sensor also exposes:
+
+- a short status summary
+- a recommended next action
+- the last failure category
+- whether a trusted snapshot is still available
+
 ## Warning about values not strictly increasing
 
 You may see warnings in your Home Assistant logs such as:

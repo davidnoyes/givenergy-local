@@ -1,6 +1,5 @@
 """Package for the tree of PDU messages."""
 
-
 from custom_components.givenergy_local.givenergy_modbus.pdu.base import (
     BasePDU,
     ClientIncomingMessage,
