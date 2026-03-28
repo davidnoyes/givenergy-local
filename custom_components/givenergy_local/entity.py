@@ -140,7 +140,9 @@ class BatteryEntity(CoordinatorEntity[GivEnergyUpdateCoordinator]):
         """Battery device information for the entity."""
 
         return DeviceInfo(
-            identifiers={(DOMAIN, self._battery_serial_number or f"battery_{self.battery_id}")},
+            identifiers={
+                (DOMAIN, self._battery_serial_number or f"battery_{self.battery_id}")
+            },
             name="Battery",
             manufacturer=MANUFACTURER,
             model=self.battery_model,
@@ -174,7 +176,11 @@ class BatteryEntity(CoordinatorEntity[GivEnergyUpdateCoordinator]):
         in a future release.
         """
         battery = self._current_battery_data()
-        capacity = int(battery.cap_design2) if battery is not None else self._battery_capacity_ah
+        capacity = (
+            int(battery.cap_design2)
+            if battery is not None
+            else self._battery_capacity_ah
+        )
         if capacity is None:
             return "Unknown"
         model_name = _BATTERY_CAPACITY_TO_MODEL.get(capacity)

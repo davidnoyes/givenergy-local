@@ -264,9 +264,9 @@ class CommandBuilder:
     ) -> list[TransparentRequest]:
         hr_start, hr_end = (
             getattr(
-                RegisterMap, f'{"DIS" if discharge else ""}CHARGE_SLOT_{idx}_START'
+                RegisterMap, f"{'DIS' if discharge else ''}CHARGE_SLOT_{idx}_START"
             ),
-            getattr(RegisterMap, f'{"DIS" if discharge else ""}CHARGE_SLOT_{idx}_END'),
+            getattr(RegisterMap, f"{'DIS' if discharge else ''}CHARGE_SLOT_{idx}_END"),
         )
         if slot:
             return [

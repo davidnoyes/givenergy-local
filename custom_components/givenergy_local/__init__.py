@@ -9,7 +9,12 @@ from homeassistant.core import HomeAssistant
 from .compat import has_entry_runtime_data
 from .const import DOMAIN
 from .coordinator import GivEnergyUpdateCoordinator
-from .runtime import GivEnergyRuntimeData, clear_runtime_data, get_coordinator, set_runtime_data
+from .runtime import (
+    GivEnergyRuntimeData,
+    clear_runtime_data,
+    get_coordinator,
+    set_runtime_data,
+)
 from .services import async_setup_services, async_unload_services
 
 _RUNTIME_KEY = f"{DOMAIN}_runtime"

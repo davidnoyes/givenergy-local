@@ -11,7 +11,6 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 import pytest
 
 from custom_components.givenergy_local import config_flow
-from custom_components.givenergy_local.const import DOMAIN
 from custom_components.givenergy_local.coordinator import (
     _COMMAND_RETRIES,
     _COMMAND_TIMEOUT,
@@ -435,9 +434,7 @@ def test_transition_to_healthy_dismisses_notification():
         )
 
     mock_dismiss.assert_called_once()
-    assert (
-        mock_dismiss.call_args.args[1] == "givenergy_local_recovery_state_entry-a"
-    )
+    assert mock_dismiss.call_args.args[1] == "givenergy_local_recovery_state_entry-a"
 
 
 def test_transition_to_same_unavailable_state_still_updates_notification():

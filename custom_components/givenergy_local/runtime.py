@@ -8,7 +8,11 @@ from typing import cast
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.exceptions import HomeAssistantError
 
-from .compat import clear_entry_runtime_data, get_entry_runtime_data, set_entry_runtime_data
+from .compat import (
+    clear_entry_runtime_data,
+    get_entry_runtime_data,
+    set_entry_runtime_data,
+)
 from .coordinator import GivEnergyUpdateCoordinator
 
 

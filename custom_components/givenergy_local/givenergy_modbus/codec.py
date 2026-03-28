@@ -47,7 +47,7 @@ class PayloadDecoder:
         """Decodes a string from the buffer."""
         if self.remaining_bytes < size:
             raise struct.error(
-                f"unpack requires a buffer of {size-self.remaining_bytes} bytes, {self.remaining_bytes} bytes remain"
+                f"unpack requires a buffer of {size - self.remaining_bytes} bytes, {self.remaining_bytes} bytes remain"
             )
         self._pointer += size
         return self._payload[self._pointer - size : self._pointer].decode("latin1")
