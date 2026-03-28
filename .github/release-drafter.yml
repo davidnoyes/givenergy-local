@@ -1,0 +1,59 @@
+---
+name-template: "Next release"
+tag-template: "v$RESOLVED_VERSION"
+change-template: "- $TITLE (#$NUMBER) by @$AUTHOR"
+template: |
+  ## Changes
+
+  $CHANGES
+
+categories:
+  - title: "Features"
+    labels:
+      - "feature"
+      - "enhancement"
+  - title: "Fixes"
+    labels:
+      - "bug"
+      - "fix"
+  - title: "Maintenance"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "python"
+      - "maintenance"
+
+autolabeler:
+  - label: "dependencies"
+    branch:
+      - '/^dependabot\/.*/'
+  - label: "github-actions"
+    files:
+      - ".github/workflows/**/*"
+      - ".github/dependabot.yml"
+  - label: "python"
+    files:
+      - "custom_components/**/*.py"
+      - "tests/**/*.py"
+      - "requirements*.txt"
+
+change-title-escapes: '\<*_&'
+version-resolver:
+  major:
+    labels:
+      - "major"
+      - "breaking-change"
+  minor:
+    labels:
+      - "feature"
+      - "enhancement"
+  patch:
+    labels:
+      - "bug"
+      - "fix"
+      - "dependencies"
+      - "maintenance"
+  default: patch
+
+exclude-labels:
+  - "skip-changelog"
