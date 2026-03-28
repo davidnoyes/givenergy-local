@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.5](https://github.com/davidnoyes/givenergy-local/compare/v2.2.4...v2.2.5) (2026-03-28)
+
+
+### Features
+
+* improve reliability, compatibility, and setup UX ([#6](https://github.com/davidnoyes/givenergy-local/pull/6))
+
 ## [2.2.4](https://github.com/davidnoyes/givenergy-local/compare/v2.2.3...v2.2.4) (2026-03-08)
 
 
