@@ -8,6 +8,7 @@ from homeassistant.const import ATTR_DEVICE_ID
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
+from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
 from custom_components.givenergy_local.givenergy_modbus.pdu.transparent import (
@@ -58,12 +59,20 @@ _SERVICE_ENABLE_TIMED_CHARGE_SCHEMA = vol.Schema(
 _SERVICE_DISABLE_TIMED_CHARGE = "disable_timed_charge"
 _SERVICE_DISABLE_TIMED_CHARGE_SCHEMA = vol.Schema({vol.Required(ATTR_DEVICE_ID): str})
 
+_SERVICE_REBOOT_INVERTER = "reboot_inverter"
+_SERVICE_REBOOT_INVERTER_SCHEMA = vol.Schema({vol.Required(ATTR_DEVICE_ID): str})
+
+_SERVICE_SYNC_CLOCK = "sync_clock"
+_SERVICE_SYNC_CLOCK_SCHEMA = vol.Schema({vol.Required(ATTR_DEVICE_ID): str})
+
 _SUPPORTED_SERVICES = [
     _SERVICE_ACTIVATE_ECO,
     _SERVICE_ACTIVATE_TIMED_DISCHARGE,
     _SERVICE_ACTIVATE_TIMED_EXPORT,
     _SERVICE_ENABLE_TIMED_CHARGE,
     _SERVICE_DISABLE_TIMED_CHARGE,
+    _SERVICE_REBOOT_INVERTER,
+    _SERVICE_SYNC_CLOCK,
 ]
 _SERVICE_TO_SCHEMA = {
     _SERVICE_ACTIVATE_ECO: _SERVICE_ACTIVATE_ECO_SCHEMA,
@@ -71,6 +80,8 @@ _SERVICE_TO_SCHEMA = {
     _SERVICE_ACTIVATE_TIMED_EXPORT: _SERVICE_ACTIVATE_TIMED_EXPORT_SCHEMA,
     _SERVICE_ENABLE_TIMED_CHARGE: _SERVICE_ENABLE_TIMED_CHARGE_SCHEMA,
     _SERVICE_DISABLE_TIMED_CHARGE: _SERVICE_DISABLE_TIMED_CHARGE_SCHEMA,
+    _SERVICE_REBOOT_INVERTER: _SERVICE_REBOOT_INVERTER_SCHEMA,
+    _SERVICE_SYNC_CLOCK: _SERVICE_SYNC_CLOCK_SCHEMA,
 }
 
 
@@ -83,6 +94,8 @@ def async_setup_services(hass: HomeAssistant) -> None:
         _SERVICE_ACTIVATE_TIMED_EXPORT: _async_activate_mode_timed_export,
         _SERVICE_ENABLE_TIMED_CHARGE: _async_enable_timed_charge,
         _SERVICE_DISABLE_TIMED_CHARGE: _async_disable_timed_charge,
+        _SERVICE_REBOOT_INVERTER: _async_reboot_inverter,
+        _SERVICE_SYNC_CLOCK: _async_sync_clock,
     }
 
     async def async_call_service(service_call: ServiceCall) -> None:
@@ -231,4 +244,22 @@ async def _async_disable_timed_charge(
     LOGGER.debug("Deactivating timed charge mode")
     await _async_service_call(
         hass, data[ATTR_DEVICE_ID], CommandBuilder.set_enable_charge(False)
+    )
+
+
+async def _async_reboot_inverter(hass: HomeAssistant, data: dict[str, Any]) -> None:
+    """Reboot the inverter."""
+    LOGGER.debug("Rebooting inverter")
+    await _async_service_call(
+        hass, data[ATTR_DEVICE_ID], CommandBuilder.set_inverter_reboot()
+    )
+
+
+async def _async_sync_clock(hass: HomeAssistant, data: dict[str, Any]) -> None:
+    """Set the inverter clock to the current time."""
+    LOGGER.debug("Synchronising inverter clock")
+    await _async_service_call(
+        hass,
+        data[ATTR_DEVICE_ID],
+        CommandBuilder.set_system_date_time(dt_util.now()),
     )
