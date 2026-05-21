@@ -82,10 +82,10 @@ async def read_inverter_serial(data: dict[str, Any]) -> str:
         async with asyncio.timeout(10):
             await client.connect()
             await client.detect_plant()
+        serial_no: str = client.plant.inverter.serial_number
     finally:
         await client.close()
 
-    serial_no: str = client.plant.inverter.serial_number
     return serial_no
 
 
@@ -151,14 +151,12 @@ class GivEnergyConfigFlow(ConfigFlow, domain=DOMAIN):
             existing_entry = await self.async_set_unique_id(
                 serial_no, raise_on_progress=False
             )
+            if existing_entry is not None and existing_entry.entry_id != entry.entry_id:
+                return self.async_abort(reason=ConfigFlowError.ALREADY_CONFIGURED)
             if entry.unique_id is not None:
                 self._abort_if_unique_id_mismatch(
                     reason=ConfigFlowError.DIFFERENT_INVERTER
                 )
-            elif (
-                existing_entry is not None and existing_entry.entry_id != entry.entry_id
-            ):
-                return self.async_abort(reason=ConfigFlowError.ALREADY_CONFIGURED)
 
             return self.async_update_reload_and_abort(
                 entry,

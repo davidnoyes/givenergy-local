@@ -342,6 +342,22 @@ _BASIC_BATTERY_SENSORS = [
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         ge_modbus_key="t_bms_mosfet",
     ),
+    MappedSensorEntityDescription(
+        key="battery_e_discharge_total",
+        name="Battery Discharge Total",
+        icon=Icon.BATTERY_MINUS,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        ge_modbus_key="e_discharge_total",
+    ),
+    MappedSensorEntityDescription(
+        key="battery_e_charge_total",
+        name="Battery Charge Total",
+        icon=Icon.BATTERY_PLUS,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        ge_modbus_key="e_charge_total",
+    ),
 ]
 
 _BATTERY_RESERVE_SENSOR_AH = MappedSensorEntityDescription(
@@ -357,7 +373,7 @@ _BATTERY_RESERVE_SENSOR_KWH = MappedSensorEntityDescription(
     name="Battery Reserve Capacity",
     icon=Icon.BATTERY_CHARGING,
     device_class=SensorDeviceClass.ENERGY,
-    state_class=SensorStateClass.TOTAL,
+    state_class=SensorStateClass.MEASUREMENT,
     native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
 )
 
@@ -366,7 +382,7 @@ _BATTERY_RUNTIME_SENSOR = MappedSensorEntityDescription(
     name="Battery Runtime",
     icon=Icon.BATTERY_PAUSE,
     device_class=SensorDeviceClass.DURATION,
-    state_class=SensorStateClass.TOTAL,
+    state_class=SensorStateClass.MEASUREMENT,
     native_unit_of_measurement=UnitOfTime.SECONDS,
 )
 
@@ -376,7 +392,7 @@ _BATTERY_CAPACITY_SENSORS = [
         name="Battery Design Capacity",
         icon=Icon.BATTERY_CHARGING,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL,
+        state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         ge_modbus_key="cap_design2",
     ),
@@ -385,7 +401,7 @@ _BATTERY_CAPACITY_SENSORS = [
         name="Battery Calibrated Capacity",
         icon=Icon.BATTERY_CHARGING,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL,
+        state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         ge_modbus_key="cap_calibrated",
     ),
@@ -394,7 +410,7 @@ _BATTERY_CAPACITY_SENSORS = [
         name="Battery Remaining Capacity",
         icon=Icon.BATTERY_CHARGING,
         device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL,
+        state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         ge_modbus_key="cap_remaining",
     ),
