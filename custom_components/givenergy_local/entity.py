@@ -1,6 +1,8 @@
 """Home Assistant entity descriptions."""
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import MAJOR_VERSION, MINOR_VERSION
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -25,6 +27,11 @@ _BATTERY_CAPACITY_TO_MODEL = {
     160: "Giv-Bat 8.2",
     186: "Giv-Bat 9.5",
 }
+
+# HA 2026.8 deprecated the `via_device` identifier tuple in DeviceInfo in favour of
+# `via_device_id`, which takes the parent's device registry ID. Older cores reject an
+# unknown `via_device_id` keyword outright, so the two forms are switched at runtime.
+_HA_SUPPORTS_VIA_DEVICE_ID = (MAJOR_VERSION, MINOR_VERSION) >= (2026, 8)
 
 # Maps models to human readable descriptions
 _MODEL_DESCRIPTIONS = {
@@ -139,7 +146,7 @@ class BatteryEntity(CoordinatorEntity[GivEnergyUpdateCoordinator]):
     def device_info(self) -> DeviceInfo:
         """Battery device information for the entity."""
 
-        return DeviceInfo(
+        device_info = DeviceInfo(
             identifiers={
                 (DOMAIN, self._battery_serial_number or f"battery_{self.battery_id}")
             },
@@ -149,8 +156,26 @@ class BatteryEntity(CoordinatorEntity[GivEnergyUpdateCoordinator]):
             sw_version=self._battery_bms_firmware_version,
             serial_number=self._battery_serial_number,
             configuration_url="https://givenergy.cloud",
-            via_device=(DOMAIN, self.coordinator.data.inverter.serial_number),
         )
+
+        inverter_identifier = (DOMAIN, self.coordinator.data.inverter.serial_number)
+        if not _HA_SUPPORTS_VIA_DEVICE_ID:
+            device_info["via_device"] = inverter_identifier  # type: ignore[typeddict-unknown-key]
+        elif inverter_device_id := self._inverter_device_id(inverter_identifier):
+            device_info["via_device_id"] = inverter_device_id
+        # Otherwise the inverter device is not registered yet; leave the link out
+        # rather than fail entity setup. It is re-evaluated on the next reload.
+
+        return device_info
+
+    def _inverter_device_id(self, identifier: tuple[str, str]) -> str | None:
+        """Look up the inverter's device registry ID, if it has been registered."""
+        if getattr(self, "hass", None) is None:
+            return None
+        inverter_device = dr.async_get(self.hass).async_get_device_by_identifier(
+            identifier, self.config_entry.entry_id
+        )
+        return inverter_device.id if inverter_device is not None else None
 
     @property
     def data(self) -> Battery:
