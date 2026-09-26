@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.6.1](https://github.com/davidnoyes/givenergy-local/compare/v2.6.0...v2.6.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* bound inverter connect/close, back off reconnects, time-limit commands ([d0d5520](https://github.com/davidnoyes/givenergy-local/commit/d0d55202dc07053d042401e4a57ecd53382acd3f))
+* drop duplicate register writes from a command batch ([dd2c0a6](https://github.com/davidnoyes/givenergy-local/commit/dd2c0a6ceeb56676f759c5b7c3f4749c80eabe33))
+* port upstream fixes [#148](https://github.com/davidnoyes/givenergy-local/issues/148), [#151](https://github.com/davidnoyes/givenergy-local/issues/151), [#152](https://github.com/davidnoyes/givenergy-local/issues/152) into the fork ([e7d15c7](https://github.com/davidnoyes/givenergy-local/commit/e7d15c77363cb0185753a57c1316a82c5d2c5c92))
+* skip PV and consumption updates when a component register is missing ([6eb36ef](https://github.com/davidnoyes/givenergy-local/commit/6eb36efc4f93817e2ec2387460dc59303ed3259a))
+
 ## [2.6.0](https://github.com/davidnoyes/givenergy-local/compare/v2.5.1...v2.6.0) (2026-09-26)
 
 
