@@ -32,3 +32,5 @@ class Icon(StrEnum):
     GRID_EXPORT = "mdi:transmission-tower-import"
     EPS = "mdi:transmission-tower-off"
     TEMPERATURE = "mdi:thermometer"
+    CLOCK = "mdi:clock-outline"
+    CLOCK_DRIFT = "mdi:clock-alert-outline"

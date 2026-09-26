@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -15,8 +15,8 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    EntityCategory,
     PERCENTAGE,
+    EntityCategory,
     UnitOfElectricPotential,
     UnitOfEnergy,
     UnitOfFrequency,
@@ -27,6 +27,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
+from homeassistant.util import dt as dt_util
 
 from .const import Icon
 from .coordinator import GivEnergyUpdateCoordinator
@@ -285,6 +286,24 @@ _RECOVERY_STATE_SENSOR = SensorEntityDescription(
     entity_category=EntityCategory.DIAGNOSTIC,
 )
 
+_INVERTER_CLOCK_SENSOR = SensorEntityDescription(
+    key="system_time",
+    name="Inverter Clock",
+    icon=Icon.CLOCK,
+    device_class=SensorDeviceClass.TIMESTAMP,
+    entity_category=EntityCategory.DIAGNOSTIC,
+)
+
+_INVERTER_CLOCK_DRIFT_SENSOR = SensorEntityDescription(
+    key="system_time_drift",
+    name="Inverter Clock Drift",
+    icon=Icon.CLOCK_DRIFT,
+    device_class=SensorDeviceClass.DURATION,
+    state_class=SensorStateClass.MEASUREMENT,
+    native_unit_of_measurement=UnitOfTime.SECONDS,
+    entity_category=EntityCategory.DIAGNOSTIC,
+)
+
 _BASIC_BATTERY_SENSORS = [
     MappedSensorEntityDescription(
         key="battery_soc",
@@ -466,6 +485,14 @@ async def async_setup_entry(
             RecoveryStateSensor(
                 coordinator, config_entry, entity_description=_RECOVERY_STATE_SENSOR
             ),
+            InverterClockSensor(
+                coordinator, config_entry, entity_description=_INVERTER_CLOCK_SENSOR
+            ),
+            InverterClockDriftSensor(
+                coordinator,
+                config_entry,
+                entity_description=_INVERTER_CLOCK_DRIFT_SENSOR,
+            ),
         ]
     )
 
@@ -643,6 +670,48 @@ class RecoveryStateSensor(InverterBasicSensor):
             "trusted_snapshot_age_seconds": self.coordinator.trusted_snapshot_age_seconds,
             "trusted_snapshot_available": self.coordinator.trusted_snapshot_available,
         }
+
+
+def _inverter_clock(data: Any) -> datetime | None:
+    """Return the inverter's clock as an aware datetime.
+
+    The inverter keeps local wall-clock time with no zone (the sync_clock service writes
+    Home Assistant's local time), so interpret it in Home Assistant's time zone.
+    """
+    system_time = getattr(data, "system_time", None)
+    if system_time is None:
+        return None
+    if system_time.tzinfo is None:
+        system_time = system_time.replace(tzinfo=dt_util.get_default_time_zone())
+    return system_time  # type: ignore[no-any-return]
+
+
+class InverterClockSensor(InverterBasicSensor):
+    """The inverter's own clock, read with the holding registers on each full refresh."""
+
+    @property
+    def native_value(self) -> datetime | None:  # type: ignore[override]
+        """Return the inverter clock as a timestamp."""
+        return _inverter_clock(self.data)
+
+
+class InverterClockDriftSensor(InverterBasicSensor):
+    """How far the inverter clock is from real time, in seconds (positive = inverter ahead).
+
+    The clock registers are only re-read on a full refresh, so compare them with the moment
+    that refresh was accepted rather than with the current time; otherwise the sensor would
+    report up to the full-refresh interval of false drift.
+    """
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the drift of the inverter clock at the last full refresh."""
+        clock = _inverter_clock(self.data)
+        read_at: datetime | None = getattr(self.coordinator, "last_full_refresh", None)
+        if clock is None or read_at is None or read_at.tzinfo is None:
+            # datetime.min (naive) until the first full refresh completes
+            return None
+        return round((clock - read_at).total_seconds())
 
 
 class BatteryBasicSensor(BatteryEntity, SensorEntity):
