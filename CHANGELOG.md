@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.0](https://github.com/davidnoyes/givenergy-local/compare/v2.5.1...v2.6.0) (2026-09-26)
+
+
+### Features
+
+* expose the inverter clock and its drift as diagnostic sensors ([3a7a0a9](https://github.com/davidnoyes/givenergy-local/commit/3a7a0a93e2f61c404bcacdb0cf67e0a92b4b399a))
+* expose the inverter clock and its drift as diagnostic sensors ([e966035](https://github.com/davidnoyes/givenergy-local/commit/e966035a55f3d908602f3ec3671eda0ae83f749e))
+
 ## [2.5.1](https://github.com/davidnoyes/givenergy-local/compare/v2.5.0...v2.5.1) (2026-09-23)
 
 
