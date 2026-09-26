@@ -33,6 +33,27 @@ _RECOVERY_NOTIFICATION_ID_PREFIX = "givenergy_local_recovery_state"
 _RECOVERY_NOTIFICATION_TITLE = "GivEnergy inverter needs attention"
 
 
+def _dedupe_requests(requests: list[TransparentRequest]) -> list[TransparentRequest]:
+    """Collapse repeat writes to the same register within a single batch.
+
+    Client.execute() gathers requests concurrently, and the client keys in-flight
+    requests by expected-response shape - which covers the register, not the
+    value. Two requests sharing a shape make the second cancel the first in
+    flight, and gather(return_exceptions=False) then aborts the whole batch
+    with the resulting CancelledError. Later entries win, so an intentional
+    final value for a register is preserved.
+
+    Ported from upstream cdpuk/givenergy-local #152.
+    """
+    unique: dict[int, TransparentRequest] = {}
+    for request in requests:
+        key = request.expected_response().shape_hash()
+        if key in unique:
+            _LOGGER.warning("Dropping duplicate request from batch: %s", request)
+        unique[key] = request
+    return list(unique.values())
+
+
 class RecoveryState(StrEnum):
     """Coordinator-owned recovery state."""
 
@@ -465,6 +486,7 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
             raise HomeAssistantError(
                 f"Cannot execute inverter commands while coordinator is {self.recovery.state}"
             )
+        requests = _dedupe_requests(requests)
         await self.client.execute(requests, _COMMAND_TIMEOUT, _COMMAND_RETRIES)
         self.require_full_refresh = True
         await self.async_request_refresh()
