@@ -27,6 +27,24 @@ _REFRESH_ATTEMPTS = 3
 _REFRESH_DELAY_BETWEEN_ATTEMPTS = 2.0
 _COMMAND_TIMEOUT = 3.0
 _COMMAND_RETRIES = 3
+_EXECUTE_TIMEOUT = 15.0
+
+# Connection handling below is ported from upstream cdpuk/givenergy-local #151.
+# Bound on how long we will wait for the underlying socket to close. A half-dead
+# dongle can leave writer.wait_closed() hanging (or raising) indefinitely; without a
+# bound, tearing down a wedged connection can itself wedge the coordinator
+# (upstream issue #147).
+_CLOSE_TIMEOUT = 5.0
+
+# Bound on connect() plus model detection. Detection does two full refreshes, so this
+# is twice upstream's 15s.
+_CONNECT_TIMEOUT = 30.0
+
+# Backoff between reconnect attempts while the inverter is unreachable, so a sick
+# dongle is not handed a fresh socket every 10s poll while its limited connection
+# slots are still draining (upstream issue #147).
+_RECONNECT_BACKOFF_INITIAL = 10.0
+_RECONNECT_BACKOFF_MAX = 60.0
 _TRUSTED_SNAPSHOT_MAX_AGE = timedelta(seconds=30)
 _MAX_UNHEALTHY_DURATION = timedelta(seconds=30)
 _RECOVERY_NOTIFICATION_ID_PREFIX = "givenergy_local_recovery_state"
@@ -138,29 +156,117 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
         self.last_full_refresh = datetime.min
         self.last_trusted_plant: Plant | None = None
         self.recovery = RecoveryStateInfo()
+        self._reconnect_backoff = _RECONNECT_BACKOFF_INITIAL
+        self._next_reconnect_attempt = datetime.min.replace(tzinfo=UTC)
 
     async def async_shutdown(self) -> None:
-        """Terminate the modbus connection and shut down the coordinator."""
+        """Terminate the modbus connection and shut down the coordinator.
+
+        Unschedules the refresh first, unconditionally: stopping the coordinator must
+        never be contingent on the socket closing cleanly, and this must never raise
+        (HA runs it detached from the config entry's unload processing).
+        """
         _LOGGER.debug("Shutting down")
-        await self.client.close()
         await super().async_shutdown()
+        await self._close_client()
+
+    async def _close_client(self) -> bool:
+        """Close the current client, bounded and never raising.
+
+        Returns True on a clean close. On timeout or any other failure the client is
+        discarded and replaced with a fresh, disconnected one: a client whose close()
+        has failed cannot be revived, because writer.wait_closed() keeps re-raising
+        off the same failed future (upstream issue #147).
+        """
+        client = self.client
+        try:
+            async with asyncio.timeout(_CLOSE_TIMEOUT):
+                await client.close()
+        except Exception as err:  # noqa: BLE001 - deliberately broad, see docstring
+            _LOGGER.warning(
+                "Failed to close inverter connection cleanly, abandoning it: %s", err
+            )
+            for task in (
+                getattr(client, "network_consumer_task", None),
+                getattr(client, "network_producer_task", None),
+            ):
+                if task is not None and not task.done():
+                    task.cancel()
+            self.client = Client(self.host, 8899)
+            return False
+        return True
+
+    async def _connect(self, detect: bool) -> None:
+        """Connect (and optionally re-detect the plant), bounded by _CONNECT_TIMEOUT."""
+        async with asyncio.timeout(_CONNECT_TIMEOUT):
+            await self.client.connect()
+            if detect:
+                await self.client.detect_plant()
+        if detect:
+            # Detection re-reads every register, including the clock, so count it as
+            # a full refresh; otherwise last_full_refresh (and the clock drift sensor
+            # measured against it) would lag the freshly read data.
+            self.require_full_refresh = True
+
+    def _schedule_reconnect_backoff(self, err: BaseException) -> None:
+        """Delay the next connection attempt, doubling up to _RECONNECT_BACKOFF_MAX."""
+        self._next_reconnect_attempt = datetime.now(UTC) + timedelta(
+            seconds=self._reconnect_backoff
+        )
+        _LOGGER.warning(
+            "Failed to connect to inverter at %s, retrying in %.0fs: %s",
+            self.host,
+            self._reconnect_backoff,
+            err,
+        )
+        self._reconnect_backoff = min(
+            self._reconnect_backoff * 2, _RECONNECT_BACKOFF_MAX
+        )
+
+    def _reset_reconnect_backoff(self) -> None:
+        self._reconnect_backoff = _RECONNECT_BACKOFF_INITIAL
+        self._next_reconnect_attempt = datetime.min.replace(tzinfo=UTC)
 
     async def _async_update_data(self) -> Plant:
         """Fetch data from the inverter."""
         if not self.client.connected:
+            if datetime.now(UTC) < self._next_reconnect_attempt:
+                raise UpdateFailed("Waiting before next inverter reconnect attempt")
             try:
-                await self.client.connect()
-                await self.client.detect_plant()
+                await self._connect(detect=True)
             except Exception as err:
-                await self.client.close()
-                self._record_failure(FailureCategory.COMMUNICATION)
+                await self._close_client()
+                self._record_failure(
+                    FailureCategory.TIMEOUT
+                    if isinstance(err, TimeoutError)
+                    else FailureCategory.COMMUNICATION
+                )
                 self._transition_recovery_state(RecoveryState.UNAVAILABLE)
+                self._schedule_reconnect_backoff(err)
                 raise UpdateFailed(
                     "Failed to establish initial inverter connection"
                 ) from err
+            self._reset_reconnect_backoff()
             return self._accept_trusted_plant(self.client.plant)
 
         return await self._async_refresh_with_recovery()
+
+    async def _reconnect_after_failure(self) -> bool:
+        """Close and reopen the connection inside a refresh; False if that failed.
+
+        When the old client had to be abandoned, the replacement has no plant data yet,
+        so model detection is re-run.
+        """
+        replaced = not await self._close_client()
+        await asyncio.sleep(_REFRESH_DELAY_BETWEEN_ATTEMPTS)
+        try:
+            await self._connect(detect=replaced)
+        except Exception as err:  # noqa: BLE001 - any failure ends this refresh
+            await self._close_client()
+            self._schedule_reconnect_backoff(err)
+            return False
+        self._reset_reconnect_backoff()
+        return True
 
     async def _async_refresh_with_recovery(self) -> Plant:
         """Refresh inverter data using coordinator-owned recovery policy."""
@@ -199,27 +305,27 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
             except TimeoutError:
                 _LOGGER.warning("Timeout error, restarting connection")
                 self._record_failure(FailureCategory.TIMEOUT)
-                await self.client.close()
                 if self._unhealthy_duration_exceeded():
+                    await self._close_client()
                     break
-                await asyncio.sleep(_REFRESH_DELAY_BETWEEN_ATTEMPTS)
-                await self.client.connect()
+                if not await self._reconnect_after_failure():
+                    break
                 continue
             except CommunicationError as err:
                 _LOGGER.debug("Closing connection due to communication error: %s", err)
                 self._record_failure(FailureCategory.COMMUNICATION)
-                await self.client.close()
                 if self._unhealthy_duration_exceeded():
+                    await self._close_client()
                     break
-                await asyncio.sleep(_REFRESH_DELAY_BETWEEN_ATTEMPTS)
-                await self.client.connect()
+                if not await self._reconnect_after_failure():
+                    break
                 continue
             except Exception as err:
-                _LOGGER.error("Closing connection due to expected error: %s", err)
+                _LOGGER.error("Closing connection due to unexpected error: %s", err)
                 self._record_failure(FailureCategory.UNEXPECTED)
                 self._transition_recovery_state(RecoveryState.UNAVAILABLE)
-                await self.client.close()
-                raise UpdateFailed("Connection closed due to expected error") from err
+                await self._close_client()
+                raise UpdateFailed("Connection closed due to unexpected error") from err
 
             if not self._is_data_valid(plant):
                 self._record_failure(FailureCategory.VALIDATION)
@@ -487,6 +593,12 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
                 f"Cannot execute inverter commands while coordinator is {self.recovery.state}"
             )
         requests = _dedupe_requests(requests)
-        await self.client.execute(requests, _COMMAND_TIMEOUT, _COMMAND_RETRIES)
+        try:
+            async with asyncio.timeout(_EXECUTE_TIMEOUT):
+                await self.client.execute(requests, _COMMAND_TIMEOUT, _COMMAND_RETRIES)
+        except (TimeoutError, CommunicationError) as err:
+            raise HomeAssistantError(
+                f"Failed to send command to inverter: {err}"
+            ) from err
         self.require_full_refresh = True
         await self.async_request_refresh()

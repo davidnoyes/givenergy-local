@@ -74,6 +74,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload config entry."""
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
+    """Reload config entry.
+
+    Goes through hass.config_entries.async_reload rather than calling
+    async_unload_entry/async_setup_entry directly: HA only runs the config entry's
+    on-unload callbacks (including the update listener registered in setup) from
+    ConfigEntry.async_unload, so calling them directly leaks the old listener and
+    coordinator on every reload. Ported from upstream cdpuk/givenergy-local #151.
+    """
+    await hass.config_entries.async_reload(entry.entry_id)
