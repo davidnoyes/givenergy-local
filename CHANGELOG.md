@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.2](https://github.com/davidnoyes/givenergy-local/compare/v2.6.1...v2.6.2) (2026-10-02)
+
+
+### Bug Fixes
+
+* measure clock drift from when the clock registers arrived ([49f190e](https://github.com/davidnoyes/givenergy-local/commit/49f190e72d2f274e4f7daaa072571e708e1bb1b0))
+* measure clock drift from when the clock registers arrived ([4d5fe91](https://github.com/davidnoyes/givenergy-local/commit/4d5fe91e106784b75c250b997639c6cf9f1e7c8d))
+
 ## [2.6.1](https://github.com/davidnoyes/givenergy-local/compare/v2.6.0...v2.6.1) (2026-09-26)
 
 
