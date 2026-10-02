@@ -154,6 +154,10 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
         self.client = Client(self.host, 8899)
         self.require_full_refresh = True
         self.last_full_refresh = datetime.min
+        # When the clock in the published data was read from the inverter (None until the
+        # first reading); the clock drift sensor measures against this.
+        self.clock_read_at: datetime | None = None
+        self._published_clock: datetime | None = None
         self.last_trusted_plant: Plant | None = None
         self.recovery = RecoveryStateInfo()
         self._reconnect_backoff = _RECONNECT_BACKOFF_INITIAL
@@ -203,9 +207,8 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
             if detect:
                 await self.client.detect_plant()
         if detect:
-            # Detection re-reads every register, including the clock, so count it as
-            # a full refresh; otherwise last_full_refresh (and the clock drift sensor
-            # measured against it) would lag the freshly read data.
+            # Detection re-reads every register, so count it as a full refresh;
+            # otherwise last_full_refresh would lag the freshly read data.
             self.require_full_refresh = True
 
     def _schedule_reconnect_backoff(self, err: BaseException) -> None:
@@ -356,7 +359,25 @@ class GivEnergyUpdateCoordinator(DataUpdateCoordinator[Plant]):
         if self.require_full_refresh:
             self.require_full_refresh = False
             self.last_full_refresh = now
+        self._note_clock_reading(trusted_plant, now)
         return trusted_plant
+
+    def _note_clock_reading(self, plant: Plant, now: datetime) -> None:
+        """Record when the published clock value was read.
+
+        The clock registers change on our full refreshes, but also whenever the dongle
+        relays a GivEnergy cloud or app read of them, so the last full refresh is not a
+        reliable read time. A clock that has moved since the last publish was read fresh;
+        take the time its registers arrived, falling back to now.
+        """
+        try:
+            clock = plant.inverter.system_time
+        except Exception:  # noqa: BLE001 - a missing or undecodable clock just isn't noted
+            return
+        if clock is None or clock == self._published_clock:
+            return
+        self._published_clock = clock
+        self.clock_read_at = self.client.clock_received_at or now
 
     def _record_failure(self, category: FailureCategory) -> None:
         """Record a failed refresh attempt and update recovery state."""

@@ -2,6 +2,7 @@ import asyncio
 import logging
 import socket
 from asyncio import Future, Queue, StreamReader, StreamWriter, Task
+from datetime import UTC, datetime
 from typing import Callable, Dict, List, Optional, Tuple
 
 from custom_components.givenergy_local.givenergy_modbus.client.commands import (
@@ -20,6 +21,7 @@ from custom_components.givenergy_local.givenergy_modbus.model.inverter import Mo
 from custom_components.givenergy_local.givenergy_modbus.model.plant import Plant
 from custom_components.givenergy_local.givenergy_modbus.pdu import (
     HeartbeatRequest,
+    ReadHoldingRegistersResponse,
     TransparentRequest,
     TransparentResponse,
     WriteHoldingRegisterResponse,
@@ -29,6 +31,22 @@ from custom_components.givenergy_local.givenergy_modbus.pdu.read_registers impor
 )
 
 _logger = logging.getLogger(__name__)
+
+# Holding registers 35-40 hold the inverter clock (year, month, day, hour, minute, second).
+_CLOCK_REGISTERS = range(35, 41)
+# Slave addresses whose responses Plant.update treats as the inverter's own.
+_INVERTER_SLAVE_ADDRESSES = (0x32, 0x11, 0x00)
+
+
+def _carries_clock(message: TransparentResponse) -> bool:
+    """Return True if the message is a successful read covering all the clock registers."""
+    return (
+        isinstance(message, ReadHoldingRegistersResponse)
+        and not message.error
+        and message.slave_address in _INVERTER_SLAVE_ADDRESSES
+        and message.base_register <= _CLOCK_REGISTERS.start
+        and message.base_register + message.register_count >= _CLOCK_REGISTERS.stop
+    )
 
 
 class Client:
@@ -47,6 +65,9 @@ class Client:
     network_producer_task: Task
 
     tx_queue: "Queue[Tuple[bytes, Optional[Future]]]"
+    # When the clock registers last arrived. The dongle also relays the GivEnergy cloud's
+    # and app's reads, so this can be later than our own last full refresh.
+    clock_received_at: Optional[datetime]
 
     def __init__(self, host: str, port: int, connect_timeout: float = 2.0) -> None:
         self.host = host
@@ -55,6 +76,7 @@ class Client:
         self.framer = ClientFramer()
         self.expected_responses = {}
         self.connected = False
+        self.clock_received_at = None
         self.plant = Plant()
         self.command_builder = CommandBuilder()
         self.tx_queue = Queue(maxsize=20)
@@ -258,6 +280,8 @@ class Client:
                     future.set_result(message)
                 # try:
                 self.plant.update(message)
+                if _carries_clock(message):
+                    self.clock_received_at = datetime.now(UTC)
                 # except RegisterCacheUpdateFailed as e:
                 #     # await self.debug_frames['error'].put(frame)
                 #     _logger.debug(f'Ignoring {message}: {e}')
