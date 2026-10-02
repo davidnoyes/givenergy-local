@@ -728,7 +728,7 @@ def _inverter_clock(data: Any) -> datetime | None:
 
 
 class InverterClockSensor(InverterBasicSensor):
-    """The inverter's own clock, read with the holding registers on each full refresh."""
+    """The inverter's own clock, as of its last read (full refresh or relayed cloud read)."""
 
     @property
     def native_value(self) -> datetime | None:  # type: ignore[override]
@@ -739,18 +739,19 @@ class InverterClockSensor(InverterBasicSensor):
 class InverterClockDriftSensor(InverterBasicSensor):
     """How far the inverter clock is from real time, in seconds (positive = inverter ahead).
 
-    The clock registers are only re-read on a full refresh, so compare them with the moment
-    that refresh was accepted rather than with the current time; otherwise the sensor would
-    report up to the full-refresh interval of false drift.
+    The clock registers are not re-read on every poll: they arrive on our full refreshes and
+    whenever the dongle relays a GivEnergy cloud or app read. Compare them with the moment
+    they arrived (the coordinator's clock_read_at) rather than with the current time or the
+    last full refresh; either would report false drift of up to several minutes.
     """
 
     @property
     def native_value(self) -> StateType:
-        """Return the drift of the inverter clock at the last full refresh."""
+        """Return the drift of the inverter clock when it was last read."""
         clock = _inverter_clock(self.data)
-        read_at: datetime | None = getattr(self.coordinator, "last_full_refresh", None)
-        if clock is None or read_at is None or read_at.tzinfo is None:
-            # datetime.min (naive) until the first full refresh completes
+        read_at: datetime | None = getattr(self.coordinator, "clock_read_at", None)
+        if clock is None or read_at is None:
+            # No clock reading noted yet
             return None
         return round((clock - read_at).total_seconds())
 
