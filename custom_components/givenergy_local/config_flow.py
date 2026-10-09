@@ -16,8 +16,10 @@ from .const import CONF_HOST, DOMAIN, LOGGER
 from .givenergy_modbus.client.client import Client
 from .givenergy_modbus.exceptions import CommunicationError
 
-STEP_USER_DATA_SCHEMA = vol.Schema({vol.Required(CONF_HOST): str})
-STEP_RECONFIGURE_DATA_SCHEMA = vol.Schema({vol.Required(CONF_HOST): str})
+# Typed as Any: HA 2026.10+ annotates flow schemas as probatio.Schema, but we
+# keep voluptuous (still accepted at runtime) to support older HA releases.
+STEP_USER_DATA_SCHEMA: Any = vol.Schema({vol.Required(CONF_HOST): str})
+STEP_RECONFIGURE_DATA_SCHEMA: Any = vol.Schema({vol.Required(CONF_HOST): str})
 
 
 class ConfigFlowError(StrEnum):
