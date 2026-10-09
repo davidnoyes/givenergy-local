@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.3](https://github.com/davidnoyes/givenergy-local/compare/v2.6.2...v2.6.3) (2026-10-09)
+
+
+### Bug Fixes
+
+* keep mypy passing with HA 2026.10 probatio schema types ([09ca33d](https://github.com/davidnoyes/givenergy-local/commit/09ca33dd7ecc1dd267d28fc5b17f5bf12320294c))
+* keep mypy passing with HA 2026.10 probatio schema types ([b7b8116](https://github.com/davidnoyes/givenergy-local/commit/b7b8116e9b7c132a86008269aed9d1b87817f4c0))
+
 ## [2.6.2](https://github.com/davidnoyes/givenergy-local/compare/v2.6.1...v2.6.2) (2026-10-02)
 
 
