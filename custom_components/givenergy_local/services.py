@@ -74,7 +74,9 @@ _SUPPORTED_SERVICES = [
     _SERVICE_REBOOT_INVERTER,
     _SERVICE_SYNC_CLOCK,
 ]
-_SERVICE_TO_SCHEMA = {
+# Typed as Any: HA 2026.10+ annotates service schemas as probatio types, but we
+# keep voluptuous (still accepted at runtime) to support older HA releases.
+_SERVICE_TO_SCHEMA: dict[str, Any] = {
     _SERVICE_ACTIVATE_ECO: _SERVICE_ACTIVATE_ECO_SCHEMA,
     _SERVICE_ACTIVATE_TIMED_DISCHARGE: _SERVICE_ACTIVATE_TIMED_DISCHARGE_SCHEMA,
     _SERVICE_ACTIVATE_TIMED_EXPORT: _SERVICE_ACTIVATE_TIMED_EXPORT_SCHEMA,
