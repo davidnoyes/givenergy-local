@@ -9,7 +9,7 @@ upstream `master` with the marker below. When upstream has moved, it ports the n
 into a PR on this fork and posts it to Discord. Merging that PR moves the marker; the job
 waits while a sync PR is open.
 
-Last reviewed upstream commit: `a2fe618268dfed86e43b1ce2b3f1be14fffe1a95` (#159, 2026-09-10)
+Last reviewed upstream commit: `782ed42c351265401a2eda8a13a65ca501d80051` (#168, 2026-10-27)
 
 ## Porting policy
 
@@ -39,3 +39,6 @@ Last reviewed upstream commit: `a2fe618268dfed86e43b1ce2b3f1be14fffe1a95` (#159,
 | #152 request collisions | Ported (v2.6.1) | The batch dedupe. The slot helpers are external-library only. |
 | #154 version bump | Not taken | Release-please sets the fork's versions. |
 | #159 uv and Python 3.14 tooling | Not taken | Upstream's tooling; the fork keeps its requirements files. |
+| #167 probatio schemas for HA 2026.10 | Not taken | The fork already handles HA 2026.10: its schemas are typed `Any` and stay on voluptuous, which HA still accepts at runtime, so it keeps supporting HA from 2024.12. Upstream's switch to `import probatio` and its minimum-HA bump to 2026.9.0 would drop older HA releases. |
+| #166 local brand assets | Deferred | Worth taking (`brand/` icon and logos, used by HA 2026.3+ and ignored by older releases), but they are binary PNGs that the automated sync cannot copy. To be copied by hand from upstream `custom_components/givenergy_local/brand/`. |
+| #168 GitHub Actions on Node 24 | Not taken | Upstream's CI workflows; the fork manages its own `.github`. |
