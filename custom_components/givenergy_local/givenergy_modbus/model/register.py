@@ -59,7 +59,15 @@ class Converter:
             return None
 
         if start_time is not None and end_time is not None:
-            return TimeSlot.from_repr(start_time, end_time)
+            try:
+                return TimeSlot.from_repr(start_time, end_time)
+            except ValueError:
+                # Any other out-of-range value (e.g. [62, 54], seen while the GivEnergy app
+                # forced a grid charge) also means 'undefined'. Raising here failed the whole
+                # refresh and left the integration reconnecting in a loop. Matches the
+                # upstream givenergy-modbus library.
+                return None
+        return None
 
     @staticmethod
     def bool(val: int | None) -> builtins.bool | None:
