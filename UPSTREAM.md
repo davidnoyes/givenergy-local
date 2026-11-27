@@ -40,5 +40,5 @@ Last reviewed upstream commit: `782ed42c351265401a2eda8a13a65ca501d80051` (#168,
 | #154 version bump | Not taken | Release-please sets the fork's versions. |
 | #159 uv and Python 3.14 tooling | Not taken | Upstream's tooling; the fork keeps its requirements files. |
 | #167 probatio schemas for HA 2026.10 | Not taken | The fork already handles HA 2026.10: its schemas are typed `Any` and stay on voluptuous, which HA still accepts at runtime, so it keeps supporting HA from 2024.12. Upstream's switch to `import probatio` and its minimum-HA bump to 2026.9.0 would drop older HA releases. |
-| #166 local brand assets | Deferred | Worth taking (`brand/` icon and logos, used by HA 2026.3+ and ignored by older releases), but they are binary PNGs that the automated sync cannot copy. To be copied by hand from upstream `custom_components/givenergy_local/brand/`. |
+| #166 local brand assets | Ported | `brand/` icon and logos copied unchanged from upstream (binary, so by hand rather than by the sync). Used by HA 2026.3+ and ignored by older releases. |
 | #168 GitHub Actions on Node 24 | Not taken | Upstream's CI workflows; the fork manages its own `.github`. |
