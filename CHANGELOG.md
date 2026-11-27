@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.7.1](https://github.com/davidnoyes/givenergy-local/compare/v2.7.0...v2.7.1) (2026-11-27)
+
+
+### Bug Fixes
+
+* treat out-of-range time slot registers as unset instead of failing the refresh ([edf26be](https://github.com/davidnoyes/givenergy-local/commit/edf26be16383de65d0ec06467ac73d06fa8b0f4b))
+* treat out-of-range time slot registers as unset instead of failing the refresh ([d632ae2](https://github.com/davidnoyes/givenergy-local/commit/d632ae277bfd28a0e931b2a3a985d89545cf528a))
+
 ## [2.7.0](https://github.com/davidnoyes/givenergy-local/compare/v2.6.4...v2.7.0) (2026-11-27)
 
 
