@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/davidnoyes/givenergy-local/compare/v2.6.4...v2.7.0) (2026-11-27)
+
+
+### Features
+
+* add local brand assets from upstream ([#166](https://github.com/davidnoyes/givenergy-local/issues/166)) ([e3d45a2](https://github.com/davidnoyes/givenergy-local/commit/e3d45a28b2d723f167eee225f1db997915f291e0))
+
 ## [2.6.4](https://github.com/davidnoyes/givenergy-local/compare/v2.6.3...v2.6.4) (2026-11-27)
 
 
