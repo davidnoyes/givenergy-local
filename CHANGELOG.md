@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.4](https://github.com/davidnoyes/givenergy-local/compare/v2.6.3...v2.6.4) (2026-11-27)
+
+
+### Bug Fixes
+
+* allow writes to battery pause registers (HR318-320) ([d66ce81](https://github.com/davidnoyes/givenergy-local/commit/d66ce81ddd5b290f0c27dd5de2ace635a9e27eb5))
+* allow writes to battery pause registers (HR318-320) ([ad2d8af](https://github.com/davidnoyes/givenergy-local/commit/ad2d8affbc9dbeb2efad9fa9054d3bf173f3591e))
+
 ## [2.6.3](https://github.com/davidnoyes/givenergy-local/compare/v2.6.2...v2.6.3) (2026-10-09)
 
 
